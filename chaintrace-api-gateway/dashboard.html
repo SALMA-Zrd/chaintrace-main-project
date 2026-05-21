@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChainTrace - ENSAFES Fes</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef2f7;--surface:#f0f4f8;
+  --border:#dce3ed;--border-h:#3b82f6;
+  --blue:#1d4ed8;--blue2:#2563eb;--blue-light:#eff6ff;--blue-mid:#bfdbfe;
+  --amber:#d97706;--amber-dim:#fffbeb;
+  --red:#dc2626;--red-dim:#fef2f2;
+  --green:#16a34a;--green-dim:#f0fdf4;
+  --purple:#7c3aed;--purple-dim:#f5f3ff;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --mono:'JetBrains Mono',monospace;--display:'Plus Jakarta Sans',sans-serif;
+  --r:12px;--r2:8px;
+  --shadow:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 4px 12px rgba(15,23,42,.08),0 2px 4px rgba(15,23,42,.04);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--display);min-height:100vh;overflow-x:hidden;}
+.topbar{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;height:62px;display:flex;align-items:center;padding:0 24px;gap:16px;box-shadow:0 1px 3px rgba(15,23,42,.06);}
+.tb-brand{display:flex;align-items:center;gap:12px;}
+.tb-logo-img{height:40px;width:auto;object-fit:contain;}
+.tb-name{font-size:14px;font-weight:800;color:var(--blue);letter-spacing:-.3px;line-height:1.1;}
+.tb-tagline{font-size:9px;font-family:var(--mono);color:var(--text3);letter-spacing:.06em;text-transform:uppercase;}
+.tb-sep{width:1px;height:28px;background:var(--border);}
+.tb-divider{flex:1;}
+.role-pill{padding:3px 10px;border-radius:20px;font-size:11px;font-family:var(--mono);font-weight:600;border:1px solid;}
+.tb-user{display:flex;align-items:center;gap:10px;}
+.tb-uname{font-size:13px;font-weight:700;color:var(--text);}
+.tb-uid{font-size:11px;font-family:var(--mono);color:var(--text3);}
+.tb-clock{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--surface);padding:4px 10px;border-radius:6px;border:1px solid var(--border);}
+.btn-logout{padding:7px 14px;border:1px solid var(--border);border-radius:var(--r2);background:#fff;color:var(--text2);font-size:12px;cursor:pointer;transition:.2s;font-family:var(--display);font-weight:600;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);background:var(--red-dim);}
+.layout{display:flex;min-height:calc(100vh - 62px);}
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--border);padding:20px 12px;flex-shrink:0;overflow-y:auto;}
+.sb-sec{margin-bottom:24px;}
+.sb-lbl{font-size:9px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.12em;padding:0 10px;margin-bottom:8px;font-weight:600;}
+.nav{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--r2);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);border:1px solid transparent;transition:.15s;}
+.nav:hover{background:var(--blue-light);color:var(--blue2);}
+.nav.active{background:var(--blue-light);color:var(--blue);border-color:var(--blue-mid);}
+.main{flex:1;padding:24px;overflow-y:auto;background:var(--bg);}
+.panel{display:none;}.panel.active{display:block;}
+.page-header{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+.ptitle{font-size:20px;font-weight:800;letter-spacing:-.4px;color:var(--text);margin-bottom:4px;}
+.psub{font-size:12px;color:var(--text3);font-family:var(--mono);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);}
+.ctitle{font-size:11px;font-weight:700;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.cdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:10px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;font-weight:600;}
+.fg input,.fg select{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:var(--r2);padding:9px 12px;color:var(--text);font-size:13px;font-family:var(--display);outline:none;transition:.2s;}
+.fg input:focus,.fg select:focus{border-color:var(--blue2);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.fg select option{background:#fff;}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn{padding:10px 18px;border-radius:var(--r2);font-size:12px;font-weight:700;font-family:var(--display);border:none;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:6px;}
+.bp{background:var(--blue);color:#fff;box-shadow:0 1px 3px rgba(29,78,216,.3);}.bp:hover{background:var(--blue2);}
+.bd{background:var(--red-dim);color:var(--red);border:1px solid rgba(220,38,38,.2);}.bd:hover{background:rgba(220,38,38,.08);}
+.bg{background:#fff;color:var(--text2);border:1px solid var(--border);}.bg:hover{border-color:var(--blue2);color:var(--blue);background:var(--blue-light);}
+.bw{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(217,119,6,.2);}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{text-align:left;padding:9px 13px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);border-bottom:2px solid var(--border);font-weight:700;background:var(--surface);}
+.tbl td{padding:11px 13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.tbl tr:hover td{background:var(--blue-light);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-family:var(--mono);font-weight:600;border:1px solid;}
+.ba{background:var(--green-dim);color:var(--green);border-color:rgba(22,163,74,.2);}
+.bi{background:var(--red-dim);color:var(--red);border-color:rgba(220,38,38,.2);}
+.bc{background:var(--blue-light);color:var(--blue);border-color:var(--blue-mid);}
+.rp-admin{background:var(--purple-dim);color:var(--purple);border-color:rgba(124,58,237,.2);}
+.rp-maker{background:var(--green-dim);color:var(--green);border-color:rgba(22,163,74,.2);}
+.rp-transporter{background:var(--blue-light);color:var(--blue);border-color:var(--blue-mid);}
+.rp-receiver{background:var(--amber-dim);color:var(--amber);border-color:rgba(217,119,6,.2);}
+.rp-assembler{background:var(--purple-dim);color:var(--purple);border-color:rgba(124,58,237,.2);}
+.rp-employer{background:var(--red-dim);color:var(--red);border-color:rgba(220,38,38,.2);}
+.rec{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r2);margin-bottom:8px;background:#fff;transition:.15s;}
+.rec:hover{border-color:var(--blue-mid);background:var(--blue-light);}
+.rec-ic{width:36px;height:36px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.rec-body{flex:1;min-width:0;}
+.rec-id{font-family:var(--mono);font-size:10px;color:var(--text3);}
+.rec-t{font-size:13px;font-weight:600;color:var(--text);}
+.rec-m{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono);}
+#toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 16px;min-width:260px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;animation:tIn .2s ease;box-shadow:var(--shadow-md);}
+.toast.s{border-color:rgba(22,163,74,.3);background:var(--green-dim);}
+.toast.e{border-color:rgba(220,38,38,.3);background:var(--red-dim);}
+.toast.w{border-color:rgba(217,119,6,.3);background:var(--amber-dim);}
+.tdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+@keyframes tIn{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+@keyframes tOut{to{transform:translateX(110%);opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.info-row:last-child{border-bottom:none;}
+.info-key{font-size:10px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
+.info-val{font-size:13px;font-weight:600;color:var(--text);}
+.audit-item{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;font-size:12px;}
+.audit-item:hover{background:var(--surface);}
+.audit-time{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;margin-top:1px;}
+.audit-action{font-family:var(--mono);font-size:11px;font-weight:700;}
+.audit-LOGIN_SUCCESS{color:var(--green);}.audit-LOGIN_FAILED{color:var(--red);}
+.audit-REGISTER{color:var(--blue);}.audit-LOGOUT{color:var(--text3);}
+.audit-USER_DEACTIVATED,.audit-USER_DELETED{color:var(--red);}
+.audit-USER_ACTIVATED{color:var(--green);}
+.audit-PASSWORD_CHANGED,.audit-PASSWORD_RESET{color:var(--amber);}
+.result-card{border-radius:var(--r2);padding:16px;margin-top:12px;border:1.5px solid;}
+.result-card.success{background:var(--green-dim);border-color:rgba(22,163,74,.25);}
+.result-card.error{background:var(--red-dim);border-color:rgba(220,38,38,.25);}
+.result-card.info{background:var(--blue-light);border-color:var(--blue-mid);}
+.rc-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.rc-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+.rc-table{width:100%;border-collapse:collapse;font-size:11.5px;font-family:var(--mono);}
+.rc-table td{padding:6px 0;vertical-align:top;}
+.rc-table td:first-child{color:var(--text3);width:180px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
+.rc-table td:last-child{color:var(--text);font-weight:600;}
+.spinner{width:16px;height:16px;border:2px solid var(--blue-mid);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-brand">
+    <img src="data:image/png;base64,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" alt="ENSA Fes" class="tb-logo-img">
+    <div>
+      <div class="tb-name">ChainTrace</div>
+      <div class="tb-tagline">Tracabilite Blockchain &middot; ENSA Fes</div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-user">
+    <span class="role-pill" id="tb-pill"></span>
+    <div>
+      <div class="tb-uname" id="tb-name"></div>
+      <div class="tb-uid" id="tb-id"></div>
+    </div>
+  </div>
+  <div class="tb-divider"></div>
+  <span class="tb-clock" id="tb-clock"></span>
+  <button class="btn-logout" id="btn-logout">Deconnexion</button>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sb-sec" id="sb-admin" style="display:none">
+      <div class="sb-lbl">Administration</div>
+      <div class="nav active" onclick="showPanel('p-pki',this)">&#128272; Certificats PKI</div>
+      <div class="nav" onclick="showPanel('p-roles',this)">&#128737; Gestion RBAC</div>
+      <div class="nav" onclick="showPanel('p-users',this)">&#128101; Comptes Fournisseurs</div>
+      <div class="nav" onclick="showPanel('p-audit-log',this)">&#128209; Journal Audit</div>
+    </div>
+    <div class="sb-sec" id="sb-ops" style="display:none">
+      <div class="sb-lbl">Espace Operateur</div>
+      <div class="nav active" id="nav-op" onclick="showPanel('p-ops',this)"><span id="nav-op-lbl"></span></div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-lbl">Consultation</div>
+      <div class="nav" onclick="showPanel('p-history',this)">&#128203; Tracabilite Produit</div>
+      <div class="nav" onclick="showPanel('p-carbon',this)">&#127807; Bilan Carbone</div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-lbl">Compte</div>
+      <div class="nav" onclick="showPanel('p-profile',this)">&#9881;&#65039; Mon Profil</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- PKI -->
+    <div class="panel active" id="p-pki">
+      <div class="page-header"><div class="ptitle">Gestion des Certificats PKI</div><div class="psub">Emission, verification et revocation des certificats fournisseurs</div></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--green)"></span>Emettre un certificat</div>
+          <div class="fr2"><div class="fg"><label>Identifiant Fournisseur</label><input id="pi-s" placeholder="org1admin"></div><div class="fg"><label>Raison Sociale</label><input id="pi-n" placeholder="Admin Org1"></div></div>
+          <div class="fg"><label>Score Qualite (min 7.0 / 10)</label><input type="number" id="pi-sc" placeholder="8.5" min="7" max="10" step="0.1"></div>
+          <button class="btn bp" id="btn-pi">Emettre le certificat &rarr;</button>
+          <div id="r-pi"></div>
+        </div>
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--blue)"></span>Verifier un certificat</div>
+          <div class="fg"><label>Identifiant Fournisseur</label><input id="pv-s" placeholder="org1admin"></div>
+          <button class="btn bp" id="btn-pv">Verifier &rarr;</button>
+          <div id="r-pv"></div>
+        </div>
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--red)"></span>Revoquer un certificat</div>
+          <div class="fr2"><div class="fg"><label>Identifiant Fournisseur</label><input id="pr-s" placeholder="org1admin"></div><div class="fg"><label>Motif de revocation</label><input id="pr-r" placeholder="Anomalie detectee"></div></div>
+          <button class="btn bd" id="btn-pr">Revoquer ce certificat</button>
+          <div id="r-pr"></div>
+        </div>
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--amber)"></span>Mettre a jour le score qualite</div>
+          <div class="fr2"><div class="fg"><label>Identifiant Fournisseur</label><input id="ps-s" placeholder="org1admin"></div><div class="fg"><label>Taux de defaut (%)</label><input type="number" id="ps-d" placeholder="2"></div></div>
+          <div class="fg"><label>Taux de livraison a temps (%)</label><input type="number" id="ps-l" placeholder="95"></div>
+          <button class="btn bg" id="btn-ps">Mettre a jour</button>
+          <div id="r-ps"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLES -->
+    <div class="panel" id="p-roles">
+      <div class="page-header"><div class="ptitle">Controle d&#39;Acces par les Roles (RBAC)</div><div class="psub">Attribution et revocation des privileges sur le reseau blockchain</div></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--green)"></span>Attribuer un role</div>
+          <div class="fr2"><div class="fg"><label>Identifiant Fournisseur</label><input id="ra-s" placeholder="supplier_a"></div><div class="fg"><label>Role a attribuer</label><select id="ra-r"><option>Admin</option><option>Maker</option><option>Transporter</option><option>Receiver</option><option>Assembler</option><option>Employer</option></select></div></div>
+          <button class="btn bp" id="btn-ra">Attribuer &rarr;</button>
+          <div id="r-ra"></div>
+        </div>
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--red)"></span>Revoquer un role</div>
+          <div class="fr2"><div class="fg"><label>Identifiant Fournisseur</label><input id="rr-s" placeholder="supplier_a"></div><div class="fg"><label>Motif</label><input id="rr-r" placeholder="Acces revoqu&#233;"></div></div>
+          <button class="btn bd" id="btn-rr">Revoquer ce role</button>
+          <div id="r-rr"></div>
+        </div>
+        <div class="card" style="grid-column:1/-1">
+          <div class="ctitle"><span class="cdot" style="background:var(--blue)"></span>Consulter le role d&#39;un fournisseur</div>
+          <div style="display:flex;gap:10px;align-items:flex-end"><div class="fg" style="flex:1"><label>Identifiant Fournisseur</label><input id="rg-s" placeholder="org1admin"></div><button class="btn bg" id="btn-rg">Consulter &rarr;</button></div>
+          <div id="r-rg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS ADMIN -->
+    <div class="panel" id="p-users">
+      <div class="page-header"><div class="ptitle">Comptes Fournisseurs</div><div class="psub">Gestion des acces et des habilitations sur la plateforme</div></div>
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="ctitle" style="margin:0"><span class="cdot" style="background:var(--blue)"></span>Repertoire des comptes enregistres</div>
+          <button class="btn bg" style="font-size:11px;padding:7px 13px" id="btn-refresh-users">&#8635; Actualiser</button>
+        </div>
+        <div style="overflow-x:auto" id="users-wrap"><p style="color:var(--text3);font-family:var(--mono);font-size:12px">Chargement en cours...</p></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--amber)"></span>Reinitialiser le mot de passe</div>
+          <div class="fr2"><div class="fg"><label>Identifiant Fournisseur</label><input id="rp-s" placeholder="supplier_a"></div><div class="fg"><label>Nouveau mot de passe</label><input type="password" id="rp-p" placeholder="6 caracteres minimum"></div></div>
+          <button class="btn bw" id="btn-rp">Reinitialiser</button>
+          <div id="r-rp"></div>
+        </div>
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--purple)"></span>Modifier le role</div>
+          <div class="fr2"><div class="fg"><label>Identifiant Fournisseur</label><input id="cr-s" placeholder="supplier_a"></div><div class="fg"><label>Nouveau role</label><select id="cr-r"><option>Admin</option><option>Maker</option><option>Transporter</option><option>Receiver</option><option>Assembler</option><option>Employer</option></select></div></div>
+          <button class="btn bg" id="btn-cr">Appliquer</button>
+          <div id="r-cr"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG -->
+    <div class="panel" id="p-audit-log">
+      <div class="page-header"><div class="ptitle">Journal d&#39;Audit de Securite</div><div class="psub">Historique complet et immuable des evenements de securite</div></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="ctitle" style="margin:0"><span class="cdot" style="background:var(--purple)"></span>Derniers evenements enregistres</div>
+          <button class="btn bg" style="font-size:11px;padding:7px 13px" id="btn-refresh-audit">&#8635; Actualiser</button>
+        </div>
+        <div id="audit-list" style="max-height:450px;overflow-y:auto;border-radius:var(--r2);border:1px solid var(--border);"><p style="color:var(--text3);font-family:var(--mono);font-size:12px;padding:14px">Chargement en cours...</p></div>
+      </div>
+    </div>
+
+    <!-- OPS -->
+    <div class="panel" id="p-ops">
+      <div class="page-header"><div class="ptitle" id="ops-t">Saisie d&#39;Operation</div><div class="psub" id="ops-s"></div></div>
+      <div class="card" style="max-width:680px">
+        <div class="ctitle"><span class="cdot" id="ops-dot" style="background:var(--blue)"></span><span id="ops-ct"></span></div>
+        <div id="ops-form"></div>
+        <button class="btn bp" id="btn-ops">Soumettre sur la blockchain &rarr;</button>
+        <div id="r-ops"></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="panel" id="p-history">
+      <div class="page-header"><div class="ptitle">Tracabilite Produit</div><div class="psub">Historique complet et verifiable de la chaine d&#39;approvisionnement</div></div>
+      <div class="card">
+        <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px">
+          <div class="fg" style="flex:1;margin:0"><label>Reference Produit</label><input id="h-p" placeholder="CHIP_001" style="margin-top:5px"></div>
+          <button class="btn bp" id="btn-hist">Rechercher &rarr;</button>
+        </div>
+        <div id="hist-list"><p style="color:var(--text3);font-family:var(--mono);font-size:12px">Saisissez une reference produit pour afficher son historique.</p></div>
+      </div>
+    </div>
+
+    <!-- CARBON -->
+    <div class="panel" id="p-carbon">
+      <div class="page-header"><div class="ptitle">Bilan Carbone &mdash; Conformite NIST SP 800-161</div><div class="psub">Analyse des emissions CO2 sur l&#39;ensemble de la chaine d&#39;approvisionnement</div></div>
+      <div class="card">
+        <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px">
+          <div class="fg" style="flex:1;margin:0"><label>Reference Produit</label><input id="co-p" placeholder="CHIP_001" style="margin-top:5px"></div>
+          <button class="btn bp" id="btn-carbon">Generer le rapport &rarr;</button>
+        </div>
+        <div id="co-res"><p style="color:var(--text3);font-family:var(--mono);font-size:12px">Saisissez une reference produit pour generer l&#39;analyse carbone.</p></div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="panel" id="p-profile">
+      <div class="page-header"><div class="ptitle">Mon Profil</div><div class="psub">Informations du compte et parametres de securite</div></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--blue)"></span>Informations du compte</div>
+          <div id="profile-body"><p style="color:var(--text3);font-size:13px">Chargement...</p></div>
+        </div>
+        <div class="card">
+          <div class="ctitle"><span class="cdot" style="background:var(--amber)"></span>Changer le mot de passe</div>
+          <div class="fg"><label>Mot de passe actuel</label><input type="password" id="cp-o" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>
+          <div class="fg"><label>Nouveau mot de passe</label><input type="password" id="cp-n" placeholder="6 caracteres minimum"></div>
+          <div class="fg"><label>Confirmer le mot de passe</label><input type="password" id="cp-c" placeholder="Repeter le mot de passe"></div>
+          <button class="btn bg" id="btn-pwd">Enregistrer les modifications</button>
+          <div id="r-pwd"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+(function() {
+  var AUTH  = 'http://127.0.0.1:3001';
+  var CHAIN = 'http://127.0.0.1:3000';
+  var TOKEN = localStorage.getItem('ct_token');
+  var ME    = JSON.parse(localStorage.getItem('ct_user') || 'null');
+  var opsSubmit = null;
+
+  if (!TOKEN || !ME) { window.location.href = 'login.html'; return; }
+
+  var CITIES = ['Fes','Casablanca','Rabat','Marrakech','Tanger','Agadir','Meknes','Oujda'];
+  var cityOpts = CITIES.map(function(c){ return '<option>' + c + '</option>'; }).join('');
+
+  var TC = {Make:'var(--green)',Transport:'var(--blue)',Receive:'var(--amber)',Assemble:'var(--purple)',Employ:'var(--red)'};
+  var TI = {Make:'&#127981;',Transport:'&#128666;',Receive:'&#128230;',Assemble:'&#128295;',Employ:'&#127919;'};
+
+  // ── RENDER HELPERS ──
+  function renderLoading(elId) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;color:var(--text3);font-size:12px;font-family:var(--mono)"><div class="spinner"></div>Signature cryptographique en cours...</div>';
+  }
+
+  function renderSuccess(elId, title, rows) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    var rowsHtml = rows.map(function(r) {
+      var color = r[2] || 'var(--text)';
+      return '<tr><td>' + r[0] + '</td><td style="color:' + color + '">' + r[1] + '</td></tr>';
+    }).join('');
+    el.innerHTML = '<div class="result-card success"><div class="rc-header"><span style="font-size:16px">&#9989;</span><span class="rc-title" style="color:var(--green)">' + title + '</span></div><table class="rc-table"><tbody>' + rowsHtml + '</tbody></table></div>';
+  }
+
+  function renderError(elId, title, detail) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = '<div class="result-card error"><div class="rc-header"><span style="font-size:16px">&#128721;</span><span class="rc-title" style="color:var(--red)">' + title + '</span></div><div style="font-size:12px;color:var(--text2);font-family:var(--mono);line-height:1.5">' + detail + '</div></div>';
+  }
+
+  function renderInfo(elId, title, rows) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    var rowsHtml = rows.map(function(r) {
+      var color = r[2] || 'var(--text)';
+      return '<tr><td>' + r[0] + '</td><td style="color:' + color + '">' + r[1] + '</td></tr>';
+    }).join('');
+    el.innerHTML = '<div class="result-card info"><div class="rc-header"><span style="font-size:16px">&#128269;</span><span class="rc-title" style="color:var(--blue)">' + title + '</span></div><table class="rc-table"><tbody>' + rowsHtml + '</tbody></table></div>';
+  }
+
+  function g(id) { var e = document.getElementById(id); return e ? e.value : ''; }
+
+  function showPanel(id, el) {
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav').forEach(function(n){ n.classList.remove('active'); });
+    if (el) el.classList.add('active');
+  }
+  window.showPanel = showPanel;
+
+  // ── API CALLS ──
+  function CH(path, method, body, respId) {
+    renderLoading(respId);
+    var opts = {
+      method: method,
+      headers: { 'Content-Type': 'application/json', 'Authorization': TOKEN ? 'Bearer ' + TOKEN : '' }
+    };
+    if (body) opts.body = JSON.stringify(body);
+
+    fetch(CHAIN + path, opts)
+      .then(function(res) { return res.json().then(function(data){ return {ok: res.ok, status: res.status, data: data}; }); })
+      .then(function(resp) {
+        var ok = resp.ok;
+        var data = resp.data;
+
+        if (!ok || data.success === false) {
+          var errMsg = data.error || 'Une regle de validation a bloque cette operation.';
+          renderError(respId, 'Operation refusee', errMsg);
+          showToast(errMsg.substring(0, 60), 'e');
+          return;
+        }
+
+        var r = data.data || data;
+
+        // PKI verify
+        if (r.cert || r.isValid !== undefined) {
+          var c = r.cert || {};
+          var isValid = r.isValid && c.Status === 'VALID';
+          var rows = [
+            ['Identifiant (DN)', c.SupplierID || r.SupplierID || '&mdash;', 'var(--blue)'],
+            ['Raison sociale', c.SupplierName || '&mdash;'],
+            ['Statut', isValid ? '&#9989; VALIDE' : '&#10060; REVOQUE', isValid ? 'var(--green)' : 'var(--red)'],
+            ['Score qualite', (c.QualityScore || 0) + ' / 10', 'var(--amber)'],
+            ['Taux de defaut', (c.DefectRate || 0) + '%', 'var(--red)'],
+            ['Livraisons a temps', (c.DeliveryOnTimeRate || 0) + '%', 'var(--green)'],
+            ['Date d\'emission', c.IssuedDate ? new Date(c.IssuedDate).toLocaleString('fr-FR') : '&mdash;'],
+            ['Expiration', c.ExpiryDate ? new Date(c.ExpiryDate).toLocaleString('fr-FR') : '&mdash;']
+          ];
+          if (c.RevocationReason) rows.push(['Motif de revocation', c.RevocationReason, 'var(--red)']);
+          renderInfo(respId, 'Certificat X.509 &mdash; Statut Fournisseur', rows);
+          showToast('Consultation PKI reussie', 's');
+          return;
+        }
+
+        // Role query
+        if (r.role || r.Role) {
+          var roleVal = r.role || r.Role;
+          var roleRows = [
+            ['Identifiant', r.supplierID || r.SupplierID || '&mdash;', 'var(--blue)'],
+            ['Role actif', roleVal, 'var(--purple)']
+          ];
+          if (r.assignedAt || r.AssignedAt) roleRows.push(['Date d\'attribution', new Date(r.assignedAt || r.AssignedAt).toLocaleString('fr-FR')]);
+          renderInfo(respId, 'Role du Fournisseur', roleRows);
+          showToast('Role consulte', 's');
+          return;
+        }
+
+        // Success message
+        if (data.message || r.message) {
+          var msgText = data.message || r.message;
+          renderSuccess(respId, 'Operation reussie', [['Confirmation', msgText]]);
+          showToast(msgText.substring(0, 60), 's');
+          return;
+        }
+
+        // Standard blockchain transaction
+        if (r.ID || r.Type) {
+          var txRows = [
+            ['Identifiant transaction', r.ID || '&mdash;', 'var(--blue)'],
+            ['Reference produit', r.ProductID || '&mdash;'],
+            ['Type d\'operation', r.Type || '&mdash;'],
+            ['Horodatage blockchain', r.Timestamp ? new Date(r.Timestamp).toLocaleString('fr-FR') : '&mdash;']
+          ];
+          if (r.QualityStatus) txRows.push(['Statut qualite', r.QualityStatus, r.QualityStatus === 'PASS' ? 'var(--green)' : 'var(--red)']);
+          if (r.Carbon) txRows.push(['Empreinte carbone', r.Carbon.co2Kg + ' kg CO2 (Score ' + r.Carbon.carbonScore + ')']);
+          renderSuccess(respId, 'Transaction immuable enregistree sur le registre', txRows);
+          showToast('Enregistrement blockchain valide', 's');
+          return;
+        }
+
+        // Generic fallback
+        var fallbackRows = Object.entries(r).filter(function(e){ return typeof e[1] !== 'object' && e[1] !== null && e[1] !== ''; }).map(function(e){ return [e[0], String(e[1])]; });
+        if (fallbackRows.length > 0) {
+          renderInfo(respId, 'Resultat de l\'operation', fallbackRows);
+        } else {
+          renderSuccess(respId, 'Operation validee', [['Statut', 'L\'operation a ete traitee avec succes.']]);
+        }
+        showToast('Operation completee', 's');
+      })
+      .catch(function(err) {
+        renderError(respId, 'Erreur de communication', 'Impossible de joindre l\'API : ' + err.message);
+        showToast('Serveur inaccessible', 'e');
+      });
+  }
+
+  function authCall(path, method, body) {
+    method = method || 'GET';
+    var opts = { method: method, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN } };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(AUTH + path, opts).then(function(res) {
+      if (res.status === 401) { doLogout(); return null; }
+      return res.json().then(function(data){ return {ok: res.ok, data: data}; });
+    });
+  }
+
+  function doLogout() {
+    if (TOKEN) { fetch(AUTH + '/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN } }); }
+    localStorage.removeItem('ct_token');
+    localStorage.removeItem('ct_user');
+    window.location.href = 'login.html';
+  }
+
+  // ── USERS ──
+  function loadUsers() {
+    authCall('/auth/users').then(function(r) {
+      if (!r) return;
+      if (!r.ok) {
+        document.getElementById('users-wrap').innerHTML = '<p style="color:var(--red);font-family:var(--mono);font-size:12px">' + r.data.error + '</p>';
+        return;
+      }
+      var rows = r.data.users.map(function(u) {
+        return '<tr><td><span style="font-family:var(--mono);font-size:11px;font-weight:600">' + u.supplierID + '</span></td><td style="font-weight:600">' + u.name + '</td><td style="color:var(--text3)">' + (u.company || '&mdash;') + '</td><td><span class="badge rp-' + u.role.toLowerCase() + '">' + u.role + '</span></td><td><span class="badge ' + (u.is_active ? 'ba' : 'bi') + '">' + (u.is_active ? '&#9679; Actif' : '&#9675; Inactif') + '</span></td><td style="font-family:var(--mono);font-size:10px;color:var(--text3)">' + (u.last_login ? new Date(u.last_login).toLocaleString('fr-FR') : 'Jamais connecte') + '</td><td style="white-space:nowrap"><button onclick="window.doToggleUser(\'' + u.supplierID + '\',' + u.is_active + ')" style="background:' + (u.is_active ? 'var(--amber-dim)' : 'var(--green-dim)') + ';color:' + (u.is_active ? 'var(--amber)' : 'var(--green)') + ';border:1px solid ' + (u.is_active ? 'rgba(217,119,6,.2)' : 'rgba(22,163,74,.2)') + ';padding:4px 10px;border-radius:6px;font-size:10px;cursor:pointer;font-family:var(--mono);font-weight:600">' + (u.is_active ? 'Desactiver' : 'Activer') + '</button><button onclick="window.doDeleteUser(\'' + u.supplierID + '\')" style="background:var(--red-dim);color:var(--red);border:1px solid rgba(220,38,38,.2);padding:4px 10px;border-radius:6px;font-size:10px;cursor:pointer;margin-left:6px;font-family:var(--mono);font-weight:600">Supprimer</button></td></tr>';
+      }).join('');
+      document.getElementById('users-wrap').innerHTML = '<table class="tbl"><thead><tr><th>Identifiant</th><th>Nom complet</th><th>Entreprise</th><th>Role</th><th>Statut</th><th>Derniere connexion</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table><p style="font-size:11px;color:var(--text3);margin-top:12px;font-family:var(--mono)">' + r.data.total + ' compte(s) enregistre(s)</p>';
+    });
+  }
+
+  window.doToggleUser = function(sid, isActive) {
+    authCall('/auth/users/' + sid + '/toggle', 'PATCH').then(function(r) {
+      if (r && r.ok) { showToast(r.data.message, 'w'); loadUsers(); }
+      else showToast((r && r.data && r.data.error) || 'Erreur', 'e');
+    });
+  };
+
+  window.doDeleteUser = function(sid) {
+    if (!confirm('Confirmer la suppression definitive du compte "' + sid + '" ?')) return;
+    authCall('/auth/users/' + sid, 'DELETE').then(function(r) {
+      if (r && r.ok) { showToast(r.data.message, 's'); loadUsers(); }
+      else showToast((r && r.data && r.data.error) || 'Erreur', 'e');
+    });
+  };
+
+  function resetPwd() {
+    authCall('/auth/users/' + g('rp-s') + '/reset-password', 'PATCH', { newPassword: g('rp-p') }).then(function(r) {
+      if (r && r.ok) { renderSuccess('r-rp', 'Mot de passe reinitialise', [['Confirmation', r.data.message || 'Reinitialisation effectuee']]); showToast(r.data.message, 's'); }
+      else { renderError('r-rp', 'Echec de la reinitialisation', (r && r.data && r.data.error) || 'Erreur inconnue'); showToast((r && r.data && r.data.error) || 'Erreur', 'e'); }
+    });
+  }
+
+  function changeRole() {
+    authCall('/auth/users/' + g('cr-s') + '/role', 'PATCH', { role: g('cr-r') }).then(function(r) {
+      if (r && r.ok) { renderSuccess('r-cr', 'Role mis a jour', [['Confirmation', r.data.message || 'Modification appliquee']]); showToast(r.data.message, 's'); loadUsers(); }
+      else { renderError('r-cr', 'Echec de la modification', (r && r.data && r.data.error) || 'Erreur inconnue'); showToast((r && r.data && r.data.error) || 'Erreur', 'e'); }
+    });
+  }
+
+  // ── AUDIT ──
+  function loadAudit() {
+    authCall('/auth/audit?limit=80').then(function(r) {
+      if (!r || !r.ok) return;
+      var html = r.data.logs.map(function(l) {
+        return '<div class="audit-item"><span class="audit-time">' + new Date(l.created_at).toLocaleString('fr-FR') + '</span><div style="flex:1"><span class="audit-action audit-' + l.action + '">' + l.action + '</span><span style="color:var(--text3);font-family:var(--mono);font-size:10px;margin-left:10px">' + l.supplier_id + '</span>' + (l.details ? '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:3px">' + l.details + '</div>' : '') + '</div></div>';
+      }).join('');
+      document.getElementById('audit-list').innerHTML = html || '<p style="color:var(--text3);font-family:var(--mono);font-size:12px;padding:14px">Aucun evenement enregistre.</p>';
+    });
+  }
+
+  // ── PROFILE ──
+  function loadProfile() {
+    authCall('/auth/me').then(function(r) {
+      if (!r || !r.ok) return;
+      var u = r.data;
+      var rows = [
+        ['Identifiant', '<span style="font-family:var(--mono)">' + u.supplierID + '</span>'],
+        ['Nom complet', u.name],
+        ['Entreprise', u.company || '&mdash;'],
+        ['Adresse e-mail', u.email || '&mdash;'],
+        ['Role', '<span class="badge rp-' + (u.role || '').toLowerCase() + '">' + u.role + '</span>'],
+        ['Statut du compte', u.is_active ? '<span class="badge ba">&#9679; Actif</span>' : '<span class="badge bi">&#9675; Inactif</span>'],
+        ['Cree le', new Date(u.created_at).toLocaleString('fr-FR')],
+        ['Derniere connexion', u.last_login ? new Date(u.last_login).toLocaleString('fr-FR') : 'Aucune connexion enregistree']
+      ];
+      document.getElementById('profile-body').innerHTML = rows.map(function(row) {
+        return '<div class="info-row"><span class="info-key">' + row[0] + '</span><span class="info-val">' + row[1] + '</span></div>';
+      }).join('');
+    });
+  }
+
+  function changePwd() {
+    var np = g('cp-n'), c = g('cp-c');
+    if (np !== c) { renderError('r-pwd', 'Erreur de validation', 'Les mots de passe saisis ne correspondent pas.'); return; }
+    authCall('/auth/me/password', 'PUT', { oldPassword: g('cp-o'), newPassword: np, confirmPassword: c }).then(function(r) {
+      if (r && r.ok) { renderSuccess('r-pwd', 'Mot de passe mis a jour', [['Confirmation', r.data.message || 'Modification enregistree avec succes']]); showToast(r.data.message, 's'); }
+      else { renderError('r-pwd', 'Echec de la mise a jour', (r && r.data && r.data.error) || 'Erreur inattendue'); showToast((r && r.data && r.data.error) || 'Erreur', 'e'); }
+    });
+  }
+
+  // ── OPS ──
+  var OPS = {
+    Maker: {
+      title: 'Enregistrement de Fabrication',
+      sub: 'Soumettre un lot de production sur le registre blockchain',
+      color: 'var(--green)',
+      buildHtml: function() {
+        return '<div class="fr2"><div class="fg"><label>Reference Produit</label><input id="o-pid" placeholder="CHIP_001"></div><div class="fg"><label>Identifiant Lot</label><input id="o-bid" placeholder="BATCH_001"></div></div><div class="fr2"><div class="fg"><label>Identifiant Machine</label><input id="o-mid" placeholder="MACHINE_001"></div><div class="fg"><label>Type de produit</label><input id="o-pt" placeholder="Standard"></div></div><div class="fr2"><div class="fg"><label>Quantite produite</label><input type="number" id="o-qty" placeholder="100"></div><div class="fg"><label>Score qualite (0-10)</label><input type="number" id="o-sc" placeholder="8.5" min="0" max="10" step="0.1"></div></div><div class="fr2"><div class="fg"><label>Ville de production</label><select id="o-city">' + cityOpts + '</select></div><div class="fg"><label>Cout de production (MAD)</label><input type="number" id="o-cost" placeholder="5000"></div></div>';
+      },
+      submit: function() { CH('/make','POST',{productID:g('o-pid'),batchID:g('o-bid'),machineID:g('o-mid'),productType:g('o-pt'),quantityProduced:g('o-qty'),qualityScore:g('o-sc'),locationCity:g('o-city'),cost:g('o-cost'),currency:'MAD'},'r-ops'); }
+    },
+    Transporter: {
+      title: 'Enregistrement de Transport',
+      sub: 'Declarer un mouvement logistique sur le reseau',
+      color: 'var(--blue)',
+      buildHtml: function() {
+        return '<div class="fg"><label>Identifiant operation precedente</label><input id="o-prev" placeholder="MAKE_20260519_XXXXXXXX"></div><div class="fr2"><div class="fg"><label>Identifiant Vehicule</label><input id="o-vid" placeholder="TRUCK_001"></div><div class="fg"><label>Mode de transport</label><select id="o-mode"><option>Road</option><option>Rail</option><option>Sea</option></select></div></div><div class="fr2"><div class="fg"><label>Ville d\'origine</label><input id="o-orig" placeholder="Fes"></div><div class="fg"><label>Ville de destination</label><input id="o-dest" placeholder="Casablanca"></div></div><div class="fr2"><div class="fg"><label>GPS Origine</label><select id="o-oc">' + cityOpts + '</select></div><div class="fg"><label>GPS Destination</label><select id="o-dc">' + cityOpts + '</select></div></div><div class="fr2"><div class="fg"><label>Quantite expediee</label><input type="number" id="o-qty" placeholder="100"></div><div class="fg"><label>Cout de transport (MAD)</label><input type="number" id="o-tc" placeholder="1200"></div></div>';
+      },
+      submit: function() { CH('/transport','POST',{previousRecordID:g('o-prev'),vehicleID:g('o-vid'),transportMode:g('o-mode'),origin:g('o-orig'),destination:g('o-dest'),quantityShipped:g('o-qty'),originCity:g('o-oc'),destCity:g('o-dc'),transportCost:g('o-tc'),currency:'MAD'},'r-ops'); }
+    },
+    Receiver: {
+      title: 'Enregistrement de Reception',
+      sub: 'Confirmer la reception d\'une livraison',
+      color: 'var(--amber)',
+      buildHtml: function() {
+        return '<div class="fg"><label>Identifiant de Transport</label><input id="o-tid" placeholder="TRANSPORT_20260519_XXXXXXXX"></div><div class="fr2"><div class="fg"><label>Quantite recue</label><input type="number" id="o-qty" placeholder="100"></div><div class="fg"><label>Etat de la marchandise</label><select id="o-cond"><option>OK</option><option>Damaged</option><option>Partial</option></select></div></div><div class="fg"><label>Ville de reception</label><select id="o-city">' + cityOpts + '</select></div>';
+      },
+      submit: function() { CH('/receive','POST',{transportID:g('o-tid'),quantityReceived:g('o-qty'),conditionStatus:g('o-cond'),locationCity:g('o-city')},'r-ops'); }
+    },
+    Assembler: {
+      title: 'Enregistrement d\'Assemblage',
+      sub: 'Declarer une operation d\'assemblage et de controle qualite',
+      color: 'var(--purple)',
+      buildHtml: function() {
+        return '<div class="fr2"><div class="fg"><label>Identifiant operation precedente</label><input id="o-prev" placeholder="RECEIVE_20260519_XXXXXXXX"></div><div class="fg"><label>Reference Produit Final</label><input id="o-pid" placeholder="CHIP_V2"></div></div><div class="fr2"><div class="fg"><label>Composants (liste JSON)</label><input id="o-comp" placeholder="[&quot;CHIP_001&quot;]"></div><div class="fg"><label>Quantite assemblee</label><input type="number" id="o-qty" placeholder="50"></div></div><div class="fr2"><div class="fg"><label>Resultat controle qualite</label><select id="o-qc"><option>PASS</option><option>FAIL</option></select></div><div class="fg"><label>Ville d\'assemblage</label><select id="o-city">' + cityOpts + '</select></div></div><div class="fg"><label>Cout d\'assemblage (MAD)</label><input type="number" id="o-cost" placeholder="3000"></div>';
+      },
+      submit: function() { CH('/assemble','POST',{previousRecordID:g('o-prev'),productID:g('o-pid'),components:g('o-comp'),quantityAssembled:g('o-qty'),qualityCheck:g('o-qc'),locationCity:g('o-city'),assemblyCost:g('o-cost'),currency:'MAD'},'r-ops'); }
+    },
+    Employer: {
+      title: 'Enregistrement de Deploiement',
+      sub: 'Declarer la mise en service finale du produit',
+      color: 'var(--red)',
+      buildHtml: function() {
+        return '<div class="fg"><label>Identifiant de Reception</label><input id="o-rid" placeholder="RECEIVE_20260519_XXXXXXXX"></div><div class="fr2"><div class="fg"><label>Statut de livraison</label><select id="o-ds"><option>On Time</option><option>Late</option><option>Damaged</option></select></div><div class="fg"><label>Site de deploiement</label><input id="o-fl" placeholder="Casablanca"></div></div><div class="fr2"><div class="fg"><label>Objectif / Utilisation</label><input id="o-purp" placeholder="Production electronique"></div><div class="fg"><label>Ville GPS</label><select id="o-city">' + cityOpts + '</select></div></div><div class="fg"><label>Valeur totale (MAD)</label><input type="number" id="o-val" placeholder="50000"></div>';
+      },
+      submit: function() { CH('/employ','POST',{receiveID:g('o-rid'),deliveryStatus:g('o-ds'),finalLocation:g('o-fl'),purpose:g('o-purp'),locationCity:g('o-city'),totalValue:g('o-val'),currency:'MAD'},'r-ops'); }
+    }
+  };
+
+  function buildOpsForm(role) {
+    var c = OPS[role];
+    if (!c) return;
+    document.getElementById('ops-t').textContent  = c.title;
+    document.getElementById('ops-s').textContent  = c.sub;
+    document.getElementById('ops-ct').textContent = c.title;
+    document.getElementById('ops-dot').style.background = c.color;
+    document.getElementById('ops-form').innerHTML = c.buildHtml();
+    opsSubmit = c.submit;
+  }
+
+  // ── HISTORY ──
+  function loadHistory() {
+    var pid = g('h-p').trim().toUpperCase();
+    if (!pid) return;
+    var div = document.getElementById('hist-list');
+    div.innerHTML = '<p style="color:var(--text3);font-family:var(--mono);font-size:12px">Interrogation du registre blockchain en cours...</p>';
+    fetch(CHAIN + '/history/' + pid, { headers: { 'Content-Type': 'application/json', 'Authorization': TOKEN ? 'Bearer ' + TOKEN : '' } })
+      .then(function(res) { return res.json().then(function(d){ return {ok:res.ok, data:d}; }); })
+      .then(function(resp) {
+        if (!resp.ok) {
+          div.innerHTML = '<div class="result-card error"><div class="rc-header"><span style="font-size:16px">&#128721;</span><span class="rc-title" style="color:var(--red)">Produit introuvable</span></div><p style="font-size:12px;color:var(--text2);font-family:var(--mono)">' + (resp.data.error || 'Aucun enregistrement trouve.') + '</p></div>';
+          return;
+        }
+        var data = resp.data;
+        if (!Array.isArray(data) || data.length === 0) {
+          div.innerHTML = '<p style="color:var(--text3);font-family:var(--mono);font-size:12px">Aucun enregistrement trouve pour cette reference.</p>';
+          return;
+        }
+        div.innerHTML = data.map(function(r) {
+          var tc = TC[r.Type] || 'var(--blue)';
+          var ti = TI[r.Type] || '&#128196;';
+          return '<div class="rec"><div class="rec-ic" style="background:' + tc.replace(')',',0.15)').replace('var(','rgba(').replace('#','') + '">' + ti + '</div><div class="rec-body"><div class="rec-t">' + r.Type + ' &mdash; <span style="color:var(--text2)">' + r.ProductID + '</span></div><div class="rec-id">' + r.ID + '</div><div class="rec-m">' + new Date(r.Timestamp).toLocaleString('fr-FR') + ' &middot; Hash : ' + (r.Hash ? r.Hash.substring(0,16) : '&mdash;') + '...</div></div><span class="badge bc">' + r.Type + '</span></div>';
+        }).join('');
+        showToast(data.length + ' enregistrement(s) trouve(s)', 's');
+      })
+      .catch(function(e) {
+        div.innerHTML = '<div class="result-card error"><div class="rc-header"><span style="font-size:16px">&#128721;</span><span class="rc-title" style="color:var(--red)">Erreur de communication</span></div><p style="font-size:12px;color:var(--text2);font-family:var(--mono)">' + e.message + '</p></div>';
+      });
+  }
+
+  // ── CARBON ──
+  function loadCarbon() {
+    var SC = {A:'var(--green)',B:'var(--blue)',C:'var(--amber)',D:'var(--amber)',F:'var(--red)'};
+    var pid = g('co-p').trim().toUpperCase();
+    if (!pid) { showToast('Veuillez saisir une reference produit', 'w'); return; }
+    var div = document.getElementById('co-res');
+    div.innerHTML = '<p style="color:var(--text3);font-family:var(--mono);font-size:12px">Generation du rapport carbone NIST en cours...</p>';
+    fetch(CHAIN + '/carbon/' + pid, { headers: { 'Content-Type': 'application/json', 'Authorization': TOKEN ? 'Bearer ' + TOKEN : '' } })
+      .then(function(res) {
+        if (!res.ok) {
+          div.innerHTML = '<div class="result-card error"><div class="rc-header"><span style="font-size:16px">&#128721;</span><span class="rc-title" style="color:var(--red)">Rapport indisponible</span></div><p style="font-size:12px;color:var(--text2);font-family:var(--mono)">Erreur serveur ' + res.status + '</p></div>';
+          return null;
+        }
+        return res.json();
+      })
+      .then(function(d) {
+        if (!d) return;
+        if (d.error || d.success === false) { div.innerHTML = '<p style="color:var(--text3);font-family:var(--mono);font-size:12px">' + (d.error || d.message || 'Aucune donnee carbone disponible.') + '</p>'; return; }
+        var sc = d.globalScore || 'A';
+        var scColor = SC[sc] || 'var(--text)';
+        var html = '<div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:14px;margin-bottom:16px"><div class="card" style="padding:16px"><div style="font-size:9px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Total CO2</div><div style="font-size:28px;font-weight:800;font-family:var(--mono);color:' + (d.globalAlert ? 'var(--red)' : 'var(--green)') + '">' + (d.totalCO2Kg || 0) + ' kg</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Seuil NIST : ' + (d.nistThresholdKg || 1000) + ' kg</div></div><div class="card" style="padding:16px"><div style="font-size:9px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Score global</div><div style="font-size:28px;font-weight:800;font-family:var(--mono);color:' + scColor + '">' + sc + '</div><div style="margin-top:6px">' + (d.globalAlert ? '<span class="badge bi">&#128680; Alerte NIST</span>' : '<span class="badge ba">&#9989; Conforme</span>') + '</div></div><div class="card" style="padding:16px"><div style="font-size:9px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Recommandation NIST</div><div style="font-size:12px;color:var(--text2);line-height:1.6;font-family:var(--mono)">' + (d.recommendation || 'Empreinte carbone conforme aux normes NIST.') + '</div></div></div>';
+        if (d.steps && d.steps.length > 0) {
+          html += '<div class="divider"></div><div style="font-size:9px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;font-weight:600">Detail des emissions par etape</div>';
+          html += d.steps.map(function(s) {
+            return '<div class="rec"><div class="rec-ic">' + (TI[s.type] || '&#128196;') + '</div><div class="rec-body"><div class="rec-t">' + s.type + ' <span style="color:var(--text3);font-size:11px;font-family:var(--mono)">' + (s.id || '') + '</span></div><div class="rec-m">Emissions : <b style="color:' + (s.alert ? 'var(--red)' : 'var(--green)') + '">' + s.co2Kg + ' kg CO2</b> &middot; Score : <b style="color:' + (SC[s.score] || 'var(--text)') + '">' + (s.score || 'A') + '</b></div></div>' + (s.alert ? '<span class="badge bi">&#9888; Alerte</span>' : '<span class="badge ba">&#10003; OK</span>') + '</div>';
+          }).join('');
+        }
+        div.innerHTML = html;
+        showToast('Rapport carbone genere', 's');
+      })
+      .catch(function(e) {
+        div.innerHTML = '<div class="result-card error"><div class="rc-header"><span style="font-size:16px">&#128721;</span><span class="rc-title" style="color:var(--red)">Erreur reseau</span></div><p style="font-size:12px;color:var(--text2);font-family:var(--mono)">' + e.message + '</p></div>';
+      });
+  }
+
+  // ── TOAST ──
+  function showToast(msg, type) {
+    type = type || 's';
+    var C = { s:'var(--green)', e:'var(--red)', w:'var(--amber)' };
+    var t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.innerHTML = '<div class="tdot" style="background:' + C[type] + '"></div><span>' + msg + '</span>';
+    document.getElementById('toasts').appendChild(t);
+    setTimeout(function() { t.style.animation = 'tOut .2s ease forwards'; setTimeout(function(){ t.remove(); }, 200); }, 3500);
+  }
+
+  // ── INIT ──
+  function init() {
+    // Topbar
+    document.getElementById('tb-name').textContent = ME.name;
+    document.getElementById('tb-id').textContent   = ME.supplierID;
+    var pill = document.getElementById('tb-pill');
+    pill.textContent = ME.role;
+    pill.className   = 'role-pill rp-' + ME.role.toLowerCase();
+
+    // Clock
+    setInterval(function() {
+      document.getElementById('tb-clock').textContent = new Date().toLocaleTimeString('fr-FR');
+    }, 1000);
+
+    // Logout
+    document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+    // Sidebar
+    var isAdmin = ME.role === 'Admin';
+    document.getElementById('sb-admin').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('sb-ops').style.display   = isAdmin ? 'none'  : 'block';
+
+    var OPS_LABELS = { Maker:'&#127981; Fabrication & Production', Transporter:'&#128666; Transport & Logistique', Receiver:'&#128230; Reception & Validation', Assembler:'&#128295; Assemblage & Controle', Employer:'&#127919; Deploiement Final' };
+    if (!isAdmin) {
+      document.getElementById('nav-op-lbl').innerHTML = OPS_LABELS[ME.role] || ME.role;
+      buildOpsForm(ME.role);
+      showPanel('p-ops', document.getElementById('nav-op'));
+    }
+
+    loadProfile();
+    if (isAdmin) { loadUsers(); loadAudit(); }
+
+    // Button bindings
+    document.getElementById('btn-pi').addEventListener('click', function(){ CH('/certificate/issue','POST',{supplierID:g('pi-s'),supplierName:g('pi-n'),qualityScore:g('pi-sc')},'r-pi'); });
+    document.getElementById('btn-pv').addEventListener('click', function(){ CH('/certificate/verify/'+g('pv-s'),'GET',null,'r-pv'); });
+    document.getElementById('btn-pr').addEventListener('click', function(){ CH('/certificate/revoke','POST',{supplierID:g('pr-s'),reason:g('pr-r')},'r-pr'); });
+    document.getElementById('btn-ps').addEventListener('click', function(){ CH('/certificate/update-score','POST',{supplierID:g('ps-s'),defectRate:g('ps-d'),deliveryOnTimeRate:g('ps-l')},'r-ps'); });
+    document.getElementById('btn-ra').addEventListener('click', function(){ CH('/role/assign','POST',{supplierID:g('ra-s'),role:g('ra-r')},'r-ra'); });
+    document.getElementById('btn-rr').addEventListener('click', function(){ CH('/role/revoke','POST',{supplierID:g('rr-s'),reason:g('rr-r')},'r-rr'); });
+    document.getElementById('btn-rg').addEventListener('click', function(){ CH('/role/'+g('rg-s'),'GET',null,'r-rg'); });
+    document.getElementById('btn-refresh-users').addEventListener('click', loadUsers);
+    document.getElementById('btn-refresh-audit').addEventListener('click', loadAudit);
+    document.getElementById('btn-rp').addEventListener('click', resetPwd);
+    document.getElementById('btn-cr').addEventListener('click', changeRole);
+    document.getElementById('btn-ops').addEventListener('click', function(){ if (opsSubmit) opsSubmit(); });
+    document.getElementById('btn-hist').addEventListener('click', loadHistory);
+    document.getElementById('btn-carbon').addEventListener('click', loadCarbon);
+    document.getElementById('btn-pwd').addEventListener('click', changePwd);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

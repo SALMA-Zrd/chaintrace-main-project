@@ -1,0 +1,9 @@
+**/node_modules/
+**/dist/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/.env
+**/wallet/
+**/identities/
+**/.n8n/

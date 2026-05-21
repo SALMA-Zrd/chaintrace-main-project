@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChainTrace — Connexion</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #f5f7fa;
+  --bg2:       #ffffff;
+  --bg3:       #eef2f7;
+
+  --surface:   #ffffff;
+
+  --border:    #cbd5e1;
+  --border-h:  #2563eb;
+
+  --blue:      #1d4ed8;
+  --blue2:     #2563eb;
+  --blue-dim:  #eff6ff;
+
+  --teal:      #0ea5a4;
+
+  --amber:     #d97706;
+  --amber-dim: #fffbeb;
+
+  --red:       #dc2626;
+  --red-dim:   #fef2f2;
+
+  --green:     #16a34a;
+  --green-dim: #f0fdf4;
+
+  --text:      #0f172a;
+  --text2:     #475569;
+  --text3:     #94a3b8;
+
+  --mono:      'JetBrains Mono', monospace;
+  --display:   'Plus Jakarta Sans', sans-serif;
+
+  --shadow:
+      0 1px 3px rgba(15,23,42,.08),
+      0 1px 2px rgba(15,23,42,.04);
+
+  --shadow-md:
+      0 4px 12px rgba(15,23,42,.08),
+      0 2px 4px rgba(15,23,42,.04);
+
+  --radius:    12px;
+  --radius-sm: 8px;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--display);
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+/* ── LEFT PANEL ── */
+.left {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* Animated grid background */
+.left::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(99,179,237,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,179,237,.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: gridDrift 20s linear infinite;
+}
+@keyframes gridDrift {
+  from { transform: translateY(0); }
+  to   { transform: translateY(48px); }
+}
+
+.left::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 30% 60%, rgba(99,179,237,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.brand {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 56px;
+}
+
+.logo-mark {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--border-h);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-dim);
+}
+
+.logo-mark svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--blue);
+}
+
+.brand-name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.brand-name span { color: var(--blue); }
+
+.hero-title {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+
+.hero-title .accent {
+  color: var(--blue);
+  display: block;
+}
+
+.hero-desc {
+  font-size: 15px;
+  color: var(--text2);
+  line-height: 1.7;
+  max-width: 380px;
+  margin-bottom: 40px;
+  font-family: var(--mono);
+  font-weight: 400;
+}
+
+/* Chain visualization */
+.chain-viz {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.chain-step {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  opacity: 0;
+  animation: fadeUp .5s ease forwards;
+}
+
+.chain-step:nth-child(1) { animation-delay: .1s; }
+.chain-step:nth-child(2) { animation-delay: .2s; }
+.chain-step:nth-child(3) { animation-delay: .3s; }
+.chain-step:nth-child(4) { animation-delay: .4s; }
+.chain-step:nth-child(5) { animation-delay: .5s; }
+.chain-step:nth-child(6) { animation-delay: .6s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.chain-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--blue);
+  background: var(--bg2);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.step-dot.active {
+  background: var(--blue);
+  box-shadow: 0 0 10px rgba(99,179,237,.5);
+}
+
+.step-line {
+  width: 1px;
+  height: 20px;
+  background: linear-gradient(to bottom, var(--blue), transparent);
+  opacity: .3;
+}
+
+.step-info {
+  flex: 1;
+}
+
+.step-role {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--blue);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.step-desc {
+  font-size: 12px;
+  color: var(--text3);
+  font-family: var(--mono);
+  margin-top: 2px;
+}
+
+.left-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nist-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--blue-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--blue2);
+}
+
+.nist-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+/* ── RIGHT PANEL ── */
+.right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: var(--bg);
+  position: relative;
+}
+
+.right::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 70% 50%, rgba(99,179,237,.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--mono);
+  cursor: pointer;
+  color: var(--text3);
+  transition: .2s;
+  border-bottom: 2px solid transparent;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.tab:hover { color: var(--text2); }
+
+.tab.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+
+/* Forms */
+.form { display: none; }
+.form.active { display: block; }
+
+.form-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -.4px;
+  margin-bottom: 6px;
+}
+
+.form-sub {
+  font-size: 13px;
+  color: var(--text2);
+  font-family: var(--mono);
+  margin-bottom: 28px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 6px;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--display);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  appearance: none;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--border-h);
+  box-shadow: 0 0 0 3px rgba(99,179,237,.08);
+}
+
+.field input::placeholder { color: var(--text3); }
+.field select option { background: var(--surface); }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-hint {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  margin-top: 5px;
+}
+
+/* Role selector */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.role-opt {
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: .2s;
+  background: var(--surface);
+}
+
+.role-opt:hover { border-color: var(--border-h); }
+
+.role-opt.selected {
+  border-color: var(--blue);
+  background: var(--blue-dim);
+}
+
+.role-opt .ro-icon { font-size: 18px; margin-bottom: 4px; }
+.role-opt .ro-name {
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+}
+.role-opt.selected .ro-name { color: var(--blue); }
+
+/* Submit button */
+.btn-submit {
+  width: 100%;
+  padding: 13px;
+  background: var(--blue);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--display);
+  letter-spacing: .02em;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.btn-submit:hover { background: var(--blue2); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+.btn-submit:disabled .btn-icon { animation: spin .6s linear infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Alerts */
+.alert {
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 12px;
+  font-family: var(--mono);
+  margin-top: 14px;
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alert-err  { background: var(--red-dim);   border: 1px solid rgba(252,129,129,.2); color: var(--red); }
+.alert-ok   { background: var(--green-dim); border: 1px solid rgba(104,211,145,.2); color: var(--green); }
+
+.alert.show { display: flex; }
+
+/* Divider */
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text3);
+}
+
+.or-divider::before,
+.or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  body { grid-template-columns: 1fr; }
+  .left { display: none; }
+  .right { padding: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LEFT — Brand ═══ -->
+<div class="left">
+  <div class="brand">
+    <div class="brand-logo">
+      <div class="logo-mark">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+        </svg>
+      </div>
+      <span class="brand-name">Chain<span>Trace</span></span>
+    </div>
+
+    <h1 class="hero-title">
+      Traçabilité
+      <span class="accent">Blockchain</span>
+      Sécurisée
+    </h1>
+    <p class="hero-desc">
+      Plateforme SIEM conforme NIST SP 800-161.<br>
+      Chaque fournisseur dispose de son espace<br>
+      sécurisé selon son rôle dans la chaîne.
+    </p>
+
+    <div class="chain-viz">
+      <div class="chain-step">
+        <div class="chain-connector">
+          <div class="step-dot active"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-info">
+          <div class="step-role">Maker</div>
+          <div class="step-desc">Fabrication & production</div>
+        </div>
+      </div>
+      <div class="chain-step">
+        <div class="chain-connector">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-info">
+          <div class="step-role">Transporter</div>
+          <div class="step-desc">Transport & logistique</div>
+        </div>
+      </div>
+      <div class="chain-step">
+        <div class="chain-connector">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-info">
+          <div class="step-role">Receiver</div>
+          <div class="step-desc">Réception & validation</div>
+        </div>
+      </div>
+      <div class="chain-step">
+        <div class="chain-connector">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-info">
+          <div class="step-role">Assembler</div>
+          <div class="step-desc">Assemblage & contrôle</div>
+        </div>
+      </div>
+      <div class="chain-step">
+        <div class="chain-connector">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-info">
+          <div class="step-role">Employer</div>
+          <div class="step-desc">Déploiement final</div>
+        </div>
+      </div>
+      <div class="chain-step">
+        <div class="chain-connector">
+          <div class="step-dot"></div>
+        </div>
+        <div class="step-info">
+          <div class="step-role" style="color:var(--amber)">Admin</div>
+          <div class="step-desc">Supervision & PKI</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="left-footer">
+    <div class="nist-badge">
+      <span class="nist-dot"></span>
+      NIST SP 800-161 · 
+    </div>
+    <div class="nist-badge" style="opacity:.6">
+      ENSA Fès — 2026
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RIGHT — Forms ═══ -->
+<div class="right">
+  <div class="auth-card">
+
+    <div class="tabs">
+      <div class="tab active" id="tab-in" onclick="switchTab('in')">Connexion</div>
+      <div class="tab" id="tab-up" onclick="switchTab('up')">Créer un compte</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="form active" id="form-in">
+      <div class="form-title">Bienvenue</div>
+      <div class="form-sub">Connectez-vous à votre espace fournisseur</div>
+
+      <div class="field">
+        <label>Identifiant fournisseur</label>
+        <input type="text" id="l-id" placeholder="ex: org1admin" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') login()">
+      </div>
+
+      <button class="btn-submit" id="btn-login" onclick="login()">
+        <span class="btn-icon">→</span>
+        Se connecter
+      </button>
+
+      <div class="alert alert-err" id="login-err"></div>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="form" id="form-up">
+      <div class="form-title">Créer un compte</div>
+      <div class="form-sub">Rejoignez la plateforme ChainTrace</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Identifiant *</label>
+          <input type="text" id="r-id" placeholder="supplier_a">
+          <div class="field-hint">Lettres, chiffres, _ -</div>
+        </div>
+        <div class="field">
+          <label>Nom complet *</label>
+          <input type="text" id="r-name" placeholder="Salma Zraidi">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Entreprise</label>
+          <input type="text" id="r-company" placeholder="FournisseurCo">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="r-email" placeholder="a@exemple.ma">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Rôle dans la chaîne *</label>
+        <div class="role-grid" id="role-grid">
+          <div class="role-opt" onclick="selectRole('Maker',this)">
+            <div class="ro-icon">🏭</div>
+            <div class="ro-name">Maker</div>
+          </div>
+          <div class="role-opt" onclick="selectRole('Transporter',this)">
+            <div class="ro-icon">🚚</div>
+            <div class="ro-name">Transport</div>
+          </div>
+          <div class="role-opt" onclick="selectRole('Receiver',this)">
+            <div class="ro-icon">📦</div>
+            <div class="ro-name">Receiver</div>
+          </div>
+          <div class="role-opt" onclick="selectRole('Assembler',this)">
+            <div class="ro-icon">🔧</div>
+            <div class="ro-name">Assembler</div>
+          </div>
+          <div class="role-opt" onclick="selectRole('Employer',this)">
+            <div class="ro-icon">🎯</div>
+            <div class="ro-name">Employer</div>
+          </div>
+          <div class="role-opt" onclick="selectRole('Admin',this)">
+            <div class="ro-icon">🛡️</div>
+            <div class="ro-name">Admin</div>
+          </div>
+        </div>
+        <input type="hidden" id="r-role">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Mot de passe *</label>
+          <input type="password" id="r-pw" placeholder="Min. 6 caractères">
+        </div>
+        <div class="field">
+          <label>Confirmer *</label>
+          <input type="password" id="r-pw2" placeholder="Répéter">
+        </div>
+      </div>
+
+      <button class="btn-submit" id="btn-reg" onclick="register()">
+        <span class="btn-icon">+</span>
+        Créer mon compte
+      </button>
+
+      <div class="alert alert-err" id="reg-err"></div>
+      <div class="alert alert-ok"  id="reg-ok"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const AUTH = 'http://localhost:3001';
+let selectedRole = '';
+
+function switchTab(t) {
+  ['in','up'].forEach(x => {
+    document.getElementById('form-' + x).className = 'form' + (x===t?' active':'');
+    document.getElementById('tab-' + x).className = 'tab' + (x===t?' active':'');
+  });
+  hideAlerts();
+}
+
+function selectRole(role, el) {
+  selectedRole = role;
+  document.getElementById('r-role').value = role;
+  document.querySelectorAll('.role-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function hideAlerts() {
+  ['login-err','reg-err','reg-ok'].forEach(id => {
+    document.getElementById(id).className = 'alert ' + (id.includes('ok') ? 'alert-ok' : 'alert-err');
+  });
+}
+
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = (id.includes('ok') ? '✓ ' : '⚠ ') + msg;
+  el.className = el.className + ' show';
+}
+
+async function login() {
+  hideAlerts();
+  const id = document.getElementById('l-id').value.trim();
+  const pw = document.getElementById('l-pw').value;
+  if (!id || !pw) { showAlert('login-err', 'Identifiant et mot de passe requis'); return; }
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-icon" style="display:inline-block">⟳</span> Vérification…';
+
+  try {
+    const res  = await fetch(AUTH + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ supplierID: id, password: pw })
+    });
+    const data = await res.json();
+
+    if (!res.ok) { showAlert('login-err', data.error); return; }
+
+    // Stocker le token et rediriger vers le dashboard
+    localStorage.setItem('ct_token', data.token);
+    localStorage.setItem('ct_user',  JSON.stringify(data.user));
+    window.location.href = 'dashboard.html';
+
+  } catch (e) {
+    showAlert('login-err', 'Serveur auth inaccessible. Lancez: node auth-server.js');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="btn-icon">→</span> Se connecter';
+  }
+}
+
+async function register() {
+  hideAlerts();
+  const id   = document.getElementById('r-id').value.trim();
+  const name = document.getElementById('r-name').value.trim();
+  const role = selectedRole;
+  const pw   = document.getElementById('r-pw').value;
+  const pw2  = document.getElementById('r-pw2').value;
+
+  if (!id || !name || !role || !pw) {
+    showAlert('reg-err', 'Tous les champs marqués * sont obligatoires');
+    return;
+  }
+  if (pw !== pw2) { showAlert('reg-err', 'Les mots de passe ne correspondent pas'); return; }
+  if (pw.length < 6) { showAlert('reg-err', 'Mot de passe minimum 6 caractères'); return; }
+
+  const btn = document.getElementById('btn-reg');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-icon" style="display:inline-block">⟳</span> Création…';
+
+  try {
+    const res  = await fetch(AUTH + '/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        supplierID: id,
+        name,
+        email:   document.getElementById('r-email').value,
+        company: document.getElementById('r-company').value,
+        role,
+        password: pw,
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) { showAlert('reg-err', data.error); return; }
+
+    showAlert('reg-ok', `Compte "${id}" créé ! Vous pouvez vous connecter.`);
+    setTimeout(() => switchTab('in'), 2000);
+
+  } catch (e) {
+    showAlert('reg-err', 'Serveur inaccessible. Lancez: node auth-server.js');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="btn-icon">+</span> Créer mon compte';
+  }
+}
+
+// Si déjà connecté, rediriger
+if (localStorage.getItem('ct_token')) {
+  window.location.href = 'dashboard.html';
+}
+</script>
+</body>
+</html>
+

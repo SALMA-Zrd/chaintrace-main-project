@@ -1,0 +1,5 @@
+node_modules/
+src/app1.ts
+wallet/
+identities/
+.env

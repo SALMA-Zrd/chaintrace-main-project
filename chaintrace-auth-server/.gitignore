@@ -1,0 +1,7 @@
+node_modules/
+chaintrace.db
+chaintrace.db-shm
+chaintrace.db-wal
+dashboard.html
+login.html
+

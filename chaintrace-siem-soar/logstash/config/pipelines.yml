@@ -1,0 +1,2 @@
+- pipeline.id: blockchain
+  path.config: "/usr/share/logstash/pipeline/blockchain.conf"
