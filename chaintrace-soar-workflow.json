@@ -1,0 +1,615 @@
+{
+  "name": "Tracability Project",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "blockchain-alert",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -544,
+        80
+      ],
+      "id": "52582c88-a8b4-4dec-b114-3cd77c6c10fb",
+      "name": "Webhook",
+      "webhookId": "b734e9f9-daee-48c4-b967-6455efc5b73c"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupération directe du body simplifié envoyé par l'API\nconst inputData = $input.first().json;\nconst body = inputData.body || inputData;\n\nreturn [{ json: {\n  supplierID: body.supplierID || 'unknown',\n  productID: body.productID || 'unknown',\n  qualityScore: 0,\n  qualityStatus: body.qualityStatus || 'UNKNOWN',\n  riskFlag: body.severity === 'CRITICAL',\n  quantityGap: 0,\n  conditionStatus: 'OK',\n  timestamp: body.timestamp || new Date().toISOString(),\n  source: 'ChainTrace-SOAR-Direct'\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        80
+      ],
+      "id": "f95d2a03-0ae2-4f9a-b622-89ec62a65626",
+      "name": "Normalise"
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:3000/certificate/verify/{{ $json.supplierID }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -128,
+        80
+      ],
+      "id": "63bd4849-6ee3-4d38-886c-b28b10233147",
+      "name": "Vérification PKI"
+    },
+    {
+      "parameters": {
+        "jsCode": "const certData = $input.first().json;\n// On va rechercher les données d'origine nettoyées dans ton premier nœud 'Normalise'\nconst prevData = $('Normalise').first().json;\n\nreturn [{\n  json: {\n    ...prevData, // On injecte supplierID, productID, quantityGap, riskFlag, etc.\n    certIsValid: certData.isValid === true,\n    certReason: certData.reason || 'Aucune raison',\n    certStatus: certData.cert?.Status || 'UNKNOWN',\n    certScore: parseFloat(certData.cert?.QualityScore) || 0,\n    certExpiry: certData.cert?.ExpiryDate || ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        80
+      ],
+      "id": "a5184a45-ad53-4a23-9d10-4311d445db03",
+      "name": "Merge PKI"
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:3000/role/{{ $json.supplierID }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        288,
+        80
+      ],
+      "id": "59bdfff2-a8fb-427c-b97b-95bc1ff938f6",
+      "name": "Vérification RBAC",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const roleData = $input.first().json;\n// On va chercher les données cumulées du nœud de merge PKI précédent\nconst prevData = $('Merge PKI').first().json;\n\n// Si l'API a renvoyé une erreur (ex: 404) ou si le rôle n'existe pas, SupplierID sera absent\nconst hasRole = roleData.SupplierID !== undefined && roleData.SupplierID !== null;\n\nreturn [{\n  json: {\n    ...prevData, // On garde TOUT : produit, PKI, anomalies de base\n    roleExists: hasRole,\n    roleValue: hasRole ? roleData.Role : 'AUCUN',\n    roleActive: hasRole ? roleData.IsActive : false,\n    roleAssignedBy: hasRole ? roleData.AssignedBy : ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        80
+      ],
+      "id": "13ce69df-6882-454d-8cd8-9ec924a99f84",
+      "name": " Merge Rôle"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.riskFlag }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "981a1f36-25b8-451e-8725-9813319c0d66"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CRITICAL"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "dfefbf86-975e-42aa-bb9c-4a130c9031e4",
+                    "leftValue": "={{ $json.certIsValid }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CRITICAL"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "70fef70b-a3b6-45ff-ad0b-d740437c515b",
+                    "leftValue": "={{ $json.roleExists }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CRITICAL"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "da455aea-f73a-498b-9d28-5e1f20a671a4",
+                    "leftValue": "={{ $json.roleActive }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CRITICAL"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "73dfad18-a71e-4301-b918-200a13dfec49",
+                    "leftValue": "={{ $json.qualityStatus }}",
+                    "rightValue": "FAIL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HIGH"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c85e3f17-4f38-414b-a8f0-e98faf8288a5",
+                    "leftValue": "={{ $json.quantityGap }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "notEquals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HIGH"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0aeaba54-763d-43d9-9e28-6583098d5eb6",
+                    "leftValue": "={{ $json.qualityScore }}",
+                    "rightValue": 7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MEDIUM "
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "921e7c4a-aecb-4ec6-8062-4405e382377a",
+                    "leftValue": "={{ true }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "NORMAL"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        16
+      ],
+      "id": "3c522a89-dc37-4f07-b8a5-a8e77ebf753d",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// On évalue les règles NIST directement sur les données reçues\nlet severity = 'NORMAL';\n\nif (data.riskFlag === true || data.certIsValid === false || data.roleExists === false || data.roleActive === false) {\n  severity = 'CRITICAL';\n} else if (data.qualityStatus === 'FAIL' || data.quantityGap !== 0 || data.conditionStatus !== 'OK') {\n  severity = 'HIGH';\n} else if (data.qualityScore < 7) {\n  severity = 'MEDIUM';\n}\n\nconst messages = {\n  CRITICAL: {\n    emoji: '🚨',\n    color: '#FF0000',\n    title: 'ALERTE CRITIQUE — Action immédiate requise',\n    recommendation: 'Menace détectée sur l\\'infrastructure (PKI/RBAC/RiskFlag). Suspendre immédiatement les accès du fournisseur.'\n  },\n  HIGH: {\n    emoji: '⚠️',\n    color: '#FF8C00',\n    title: 'ALERTE HAUTE — Anomalie Métier Détectée',\n    recommendation: 'Écart de quantité ou défaut qualité blockchain. Bloquer le lot de produits et inspecter la cargaison.'\n  },\n  MEDIUM: {\n    emoji: '⚡',\n    color: '#FFD700',\n    title: 'ALERTE MOYENNE — Score Qualité Faible',\n    recommendation: 'Le score de qualité est inférieur au seuil recommandé. Placer le fournisseur sous surveillance.'\n  },\n  NORMAL: {\n    emoji: '✅',\n    color: '#00AA00',\n    title: 'Transaction Blockchain Validée',\n    recommendation: 'Aucune anomalie détectée. Processus nominal.'\n  }\n};\n\nconst msg = messages[severity];\n\nreturn [{\n  json: {\n    ...data,\n    severity: severity,\n    alertEmoji: msg.emoji,\n    alertColor: msg.color,\n    alertTitle: msg.title,\n    recommendation: msg.recommendation,\n    alertID: `ALERT-${Date.now()}`,\n    formattedTime: new Date(data.timestamp || Date.now()).toLocaleString('fr-FR')\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        112
+      ],
+      "id": "a8104d19-e799-4d9d-a477-d18446b88239",
+      "name": "Enrichir"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR_SLACK_WEBHOOK_SECRET_HERE",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"attachments\": [\n    {\n      \"color\": \"{{ $json.alertColor }}\",\n      \"title\": \"{{ $json.alertEmoji }} {{ $json.alertTitle }}\",\n      \"fields\": [\n        { \"title\": \"Fournisseur\", \"value\": \"{{ $json.supplierID }}\", \"short\": true },\n        { \"title\": \"Produit\", \"value\": \"{{ $json.productID }}\", \"short\": true },\n        { \"title\": \"Sévérité\", \"value\": \"{{ $json.severity }}\", \"short\": true },\n        { \"title\": \"Score Qualité\", \"value\": \"{{ $json.qualityScore }}/10\", \"short\": true },\n        { \"title\": \"Certificat PKI\", \"value\": \"{{ $json.certIsValid ? 'VALIDE ✅' : 'INVALIDE ❌' }}\", \"short\": true },\n        { \"title\": \"Rôle RBAC\", \"value\": \"{{ $json.roleValue }} ({{ $json.roleActive ? 'Actif' : 'Inactif' }})\", \"short\": true },\n        { \"title\": \"Recommandation\", \"value\": \"{{ $json.recommendation }}\", \"short\": false },\n        { \"title\": \"Alert ID\", \"value\": \"{{ $json.alertID }}\", \"short\": true }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1232,
+        384
+      ],
+      "id": "da98fdd5-dce4-4525-bb04-786a330c2025",
+      "name": "Slack - Alerte"
+    },
+    {
+      "parameters": {
+        "fromEmail": "gXXXXXX@gmail.com",
+        "toEmail": "fXXXXXXXXX@gmail.com",
+        "subject": "=[SIEM Alert] {{ $json.alertEmoji }} {{ $json.alertTitle }} (ID: {{ $json.alertID }})",
+        "html": "=<h2>Rapport d'Incident Automatique SIEM/SOAR</h2>\n<p><strong>Date de détection :</strong> {{ $json.formattedTime }}</p>\n<p><strong>Niveau de Sévérité :</strong> <span style=\"color: {{ $json.alertColor }}; font-weight: bold;\">{{ $json.severity }}</span></p>\n<hr>\n<h3>Détails du Fournisseur & Produit</h3>\n<ul>\n  <li><strong>ID Fournisseur :</strong> {{ $json.supplierID }}</li>\n  <li><strong>ID Produit :</strong> {{ $json.productID }}</li>\n  <li><strong>Statut Qualité :</strong> {{ $json.qualityStatus }} (Score: {{ $json.qualityScore }}/10)</li>\n</ul>\n<h3>Contexte de Sécurité</h3>\n<ul>\n  <li><strong>Certificat PKI :</strong> {{ $json.certIsValid ? 'VALIDE ✅' : 'INVALIDE ❌' }} (Statut: {{ $json.certStatus }})</li>\n  <li><strong>Rôle RBAC :</strong> {{ $json.roleValue }} (Actif: {{ $json.roleActive }})</li>\n</ul>\n<hr>\n<p><strong>Recommandation du SOC :</strong> {{ $json.recommendation }}</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1296,
+        128
+      ],
+      "id": "a53ab532-c91e-4c70-9da8-da1854b346af",
+      "name": "Email — Rapport détaillé",
+      "webhookId": "51656477-4422-4f80-ad6f-10b60bec5106",
+      "credentials": {
+        "smtp": {
+          "id": "uLmXm7d8xQVgatx0",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:9200/chaintrace-alerts/_doc",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"@timestamp\": \"{{ $json.timestamp }}\",\n  \"alert_id\": \"{{ $json.alertID }}\",\n  \"severity\": \"{{ $json.severity }}\",\n  \"supplier_id\": \"{{ $json.supplierID }}\",\n  \"product_id\": \"{{ $json.productID }}\",\n  \"cert_valid\": {{ $json.certIsValid }},\n  \"role_value\": \"{{ $json.roleValue }}\",\n  \"recommendation\": \"{{ $json.recommendation }}\",\n  \"source\": \"ChainTrace-SOAR\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1232,
+        -80
+      ],
+      "id": "58a16cb7-9ddb-4694-a219-97c230054449",
+      "name": "HTTP — ELK"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6365a862-5896-478f-9138-dab03b79b57c",
+              "leftValue": "={{ $json.severity }}",
+              "rightValue": "CRITICAL",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1232,
+        -320
+      ],
+      "id": "3d0d998a-b27f-4a9e-88cc-a38738ff4e10",
+      "name": "IF critique"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/certificate/revoke",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"supplierID\": \"{{ $json.supplierID === 'unknown' || !$json.supplierID ? 'org1admin' : $json.supplierID }}\",\n  \"reason\": \"Révocation automatique SOAR — Détection d'une anomalie critique (ID: {{ $json.alertID || 'ALERT-GENERIC' }})\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1504,
+        -336
+      ],
+      "id": "41e8079a-d396-4717-98d9-844b0a13eb46",
+      "name": "Révoquer PKI"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise": {
+      "main": [
+        [
+          {
+            "node": "Vérification PKI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérification PKI": {
+      "main": [
+        [
+          {
+            "node": "Merge PKI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge PKI": {
+      "main": [
+        [
+          {
+            "node": "Vérification RBAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérification RBAC": {
+      "main": [
+        [
+          {
+            "node": " Merge Rôle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Merge Rôle": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrichir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichir": {
+      "main": [
+        [
+          {
+            "node": "Slack - Alerte",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email — Rapport détaillé",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP — ELK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF critique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Alerte": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP — ELK": {
+      "main": [
+        []
+      ]
+    },
+    "IF critique": {
+      "main": [
+        [
+          {
+            "node": "Révoquer PKI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3f30d4f0-a3aa-48c9-b972-428ab863a00b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "675991d03992ce6c3aa898b875f601a9e6a4377211ef23c23ad5fb1714a506a5"
+  },
+  "id": "PBk8JlJlKxdH3FUF",
+  "tags": []
+}
