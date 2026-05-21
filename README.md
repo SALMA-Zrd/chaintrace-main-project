@@ -30,6 +30,14 @@ The Smart Contracts define and mathematically link 5 structural state records (`
 
 ---
 
+## 🌐 Global Solution Overview
+
+The diagram below illustrates the full end-to-end architecture of ChainTrace, spanning the 3 DLT ecosystems and all lifecycle traceability records:
+
+![Full Chain Architecture](Full_chain.png)
+
+---
+
 ## 🏗️ Monorepo Directory Architecture
 
 This centralized monorepo orchestrates the full DevSecOps stack:
@@ -45,11 +53,49 @@ This centralized monorepo orchestrates the full DevSecOps stack:
 
 ---
 
+## 💻 Platform Screenshots
+
+### Login Page
+
+![Platform Login](platforme1.png)
+
+### Admin Dashboard
+
+![Admin Dashboard](plat_admin.png)
+
+### Fabrication — Make Record
+
+![Fabrication](Fabrication_product.png)
+
+### Transport Record
+
+![Transport](Transport_product.png)
+
+### Reception Record
+
+![Reception](reception.png)
+
+### Employ (Utilization) — Final Audit Decision
+
+![Employer](employer.png)
+
+### Full Traceability View
+
+![Traceability](tracabilite_product.png)
+
+---
+
 ## 🔐 Advanced Security Engineering & Active Mitigation (SOAR)
 
 - **RBAC & Cryptographic Assurance:** Access control maps strictly to NIST roles (*Maker, Assembler, Transporter, Receiver, Employer*). Transactions are signed via ECDSA keys linked to verified X.509 certificates.
 - **Closed-Loop SecOps Control:** Network and ledger logs are parsed in real time by **Logstash** and aggregated into **Elasticsearch**.
 - **Automated Threat Containment:** If a supplier commits a compromised artifact or fails an automated NIST compliance quality threshold, the **SOAR (n8n)** engine flags the anomaly, transmits a critical response alert to **Slack**, and pushes an automated gRPC instruction to the Gateway to **instantly revoke the actor's cryptographic identity certificate**. Any further transaction attempts by this node are dynamically rejected by the Blockchain consensus layer.
+
+### 🔄 SOAR Active Response Workflow (n8n)
+
+![SOAR Workflow](workflow.png)
+
+> Automated threat containment pipeline: ELK alert → n8n → Slack notification → Certificate revocation
 
 ---
 
