@@ -97,6 +97,42 @@ This centralized monorepo orchestrates the full DevSecOps stack:
 
 > Automated threat containment pipeline: ELK alert → n8n → Slack notification → Certificate revocation
 
+### 🔔 Slack Alert — Real-Time Threat Notification
+
+When a threat is detected, the SOAR engine instantly pushes a structured alert to the designated Slack channel, including the actor identity, anomaly type, severity level, and the automated revocation status:
+
+![Slack Alert](alerte_slack.png)
+
+---
+
+## 📊 SIEM Monitoring — Kibana Dashboards
+
+All Hyperledger Fabric transactions and security events are aggregated in real time into Elasticsearch and visualized through the following Kibana dashboards:
+
+### Certificate Status — `etat_certificat`
+
+Tracks the live state of all cryptographic identity certificates across the 3 ecosystems, flagging revoked or suspended actors:
+
+![Certificate Status](etat_certificat.png)
+
+### Anomaly Types — `type_anomalie`
+
+Classifies and counts detected anomalies by category (quality threshold breach, unauthorized transaction, compromised artifact, etc.):
+
+![Anomaly Types](type_anomalie.png)
+
+### Severity Distribution — `severity`
+
+Visualizes the distribution of security events by severity level (Critical, High, Medium, Low) over time:
+
+![Severity](severity.png)
+
+### Quality Status — `quality_status`
+
+Monitors the quality compliance metrics of registered components against the NIST SP 800-161 thresholds:
+
+![Quality Status](quality_status.png)
+
 ---
 
 ## 🚀 Deployment & Orchestration Guide
