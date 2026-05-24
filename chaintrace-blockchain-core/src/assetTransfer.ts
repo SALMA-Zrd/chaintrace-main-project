@@ -53,6 +53,7 @@ export class Certificate {
   public ExpiryDate: string = '';
   public LastUpdate: string = '';
   public RevocationReason: string = '';
+  WarningCount: number=0; 
 }
 
 export class RoleRecord {
@@ -274,18 +275,18 @@ export class TraceabilityContract extends Contract {
     return Math.round(((Math.max(0,10-d*2))*0.4+(del/10)*0.4+old*0.2)*100)/100;
   }
 
- 
- 
-// ── 1. Remplacer verifyAccess dans assetTransfer.ts ──────────────
+
+
+// ──  verifyAccess dans assetTransfer.ts ──────────────
 
 
 private async verifyAccess(ctx: Context, requiredRole: string): Promise<string> {
     let supplierID: string = '';
-    
+
     try {
         // Lecture de la map transiente envoyée par app.ts
         const transientMap = ctx.stub.getTransient();
-        
+
         if (transientMap && transientMap.has('callerID')) {
             const callerBuf = transientMap.get('callerID');
             if (callerBuf && callerBuf.length > 0) {
@@ -323,7 +324,7 @@ private async verifyAccess(ctx: Context, requiredRole: string): Promise<string> 
     if (!role.IsActive) {
         throw new Error(`Accès refusé — Rôle révoqué pour "${supplierID}" : ${role.RevokedReason}`);
     }
-    
+
     if (role.Role !== requiredRole) {
         throw new Error(`Accès refusé — L'utilisateur "${supplierID}" détient le rôle "${role.Role}" sur la blockchain, mais le rôle "${requiredRole}" est requis.`);
     }
@@ -694,7 +695,7 @@ private async verifyAccess(ctx: Context, requiredRole: string): Promise<string> 
     }, null, 2);
   }
 
-  // ── PKI (Phase 2 — inchangé) ───────────────────────────────
+  // ── PKI (Phase 2 ) ───────────────────────────────
   @Transaction()
   public async IssueCertificate(ctx:Context,supplierID:string,supplierName:string,qualityScore:string):Promise<string>{
     const score=parseFloat(qualityScore);
@@ -708,9 +709,54 @@ private async verifyAccess(ctx: Context, requiredRole: string): Promise<string> 
     cert.SupplierID=supplierID; cert.SupplierName=supplierName; cert.Status='VALID';
     cert.QualityScore=score; cert.DefectRate=0; cert.DeliveryOnTimeRate=100;
     cert.IssuedDate=now; cert.ExpiryDate=expiry; cert.LastUpdate=now; cert.RevocationReason='';
+    cert.WarningCount = 0; 
     await ctx.stub.putState(`CERT_${supplierID}`,Buffer.from(JSON.stringify(cert)));
     return JSON.stringify(cert);
   }
+
+  @Transaction()
+    @Transaction()
+public async HandleSupplierAnomaly(ctx: Context, supplierID: string, alertID: string): Promise<string> {
+    const data = await ctx.stub.getState(`CERT_${supplierID}`);
+    if (!data || data.length === 0) {
+        throw new Error(`Certificat introuvable pour le fournisseur ${supplierID}`);
+    }
+
+    const cert: Certificate = JSON.parse(Buffer.from(data).toString('utf8'));
+
+    // Sécurité : Si déjà révoqué, on ne fait plus rien
+    if (cert.Status === 'REVOKED') {
+        return JSON.stringify(cert);
+    }
+
+    // 1. On incrémente le nombre d'anomalies détectées (pour l'historique et Kibana)
+    if (cert.WarningCount === undefined || cert.WarningCount === null) {
+        cert.WarningCount = 0;
+    }
+    cert.WarningCount += 1;
+    cert.LastUpdate = this.getTimestamp(ctx);
+
+    // 2. On applique la baisse de score suite à l'anomalie
+    let currentScore = cert.QualityScore !== undefined ? cert.QualityScore : 10.0;
+    currentScore = currentScore - 1.0; // 
+    if (currentScore < 0) currentScore = 0;
+
+    // Arrondir proprement à 1 décimale
+    cert.QualityScore = Math.round(currentScore * 10) / 10;
+
+    // 3. 🚨 LA LOGIQUE EXACTE : Vérification du Score Global uniquement
+    if (cert.QualityScore < 7.0) {
+        cert.Status = 'REVOKED';
+        cert.RevocationReason = `Révocation automatique SOAR — Score global insuffisant (${cert.QualityScore}/10 < 7.0) suite à l'anomalie (Alerte ID: ${alertID})`;
+    } else {
+        cert.Status = 'VALID';
+        cert.RevocationReason = `Avertissement SecOps appliqué [${cert.WarningCount} anomalie(s)] — Score actuel: ${cert.QualityScore}/10 (Alerte ID: ${alertID})`;
+    }
+
+    // 4. Sauvegarde dans la Blockchain
+    await ctx.stub.putState(`CERT_${supplierID}`, Buffer.from(JSON.stringify(cert)));
+    return JSON.stringify(cert);
+}
   @Transaction()
   public async RevokeCertificate(ctx:Context,supplierID:string,reason:string):Promise<string>{
     const data=await ctx.stub.getState(`CERT_${supplierID}`);
@@ -753,18 +799,18 @@ private async verifyAccess(ctx: Context, requiredRole: string): Promise<string> 
     return Buffer.from(data).toString('utf8');
   }
 
-  // ── Rôles (Phase 3 — inchangé) ────────────────────────────
+  // ── Rôles (Phase 3 ) ────────────────────────────
 
-// ── 2. Remplacer AssignRole dans assetTransfer.ts ────────────────
+
 // (Permettre à l'Admin d'assigner des rôles sans certificat préalable,
 //  et faire un upsert au lieu de bloquer si le rôle existe déjà)
 @Transaction()
 public async AssignRole(ctx: Context, supplierID: string, role: string): Promise<string> {
   if (!this.VALID_ROLES.includes(role)) throw new Error(`Rôle invalide: ${role}`);
- 
+
   const actorFullID = ctx.clientIdentity.getID();
   const callerID    = this.extractSupplierID(actorFullID);
- 
+
   // Vérifier que l'appelant est Admin
   const iterator    = await ctx.stub.getStateByRange('ROLE_', 'ROLE_~');
   let adminCount    = 0;
@@ -775,7 +821,7 @@ public async AssignRole(ctx: Context, supplierID: string, role: string): Promise
     res = await iterator.next();
   }
   await iterator.close();
- 
+
   if (adminCount === 0) {
     // Bootstrap : premier appel, s'auto-assigner Admin
     if (role !== 'Admin')
@@ -788,22 +834,22 @@ public async AssignRole(ctx: Context, supplierID: string, role: string): Promise
     if (!callerRole.IsActive || callerRole.Role !== 'Admin')
       throw new Error(`Accès refusé — ${callerID} n'est pas Admin`);
   }
- 
+
   const now = this.getTimestamp(ctx);
- 
+
   // UPSERT : si rôle existant (même révoqué), on le met à jour
   const existing = await ctx.stub.getState(`ROLE_${supplierID}`);
   const roleRecord = (existing && existing.length > 0)
     ? JSON.parse(Buffer.from(existing).toString('utf8')) as RoleRecord
     : new RoleRecord();
- 
+
   roleRecord.SupplierID   = supplierID;
   roleRecord.Role         = role;
   roleRecord.AssignedBy   = callerID;
   roleRecord.AssignedDate = now;
   roleRecord.IsActive     = true;
   roleRecord.RevokedReason = '';
- 
+
   await ctx.stub.putState(`ROLE_${supplierID}`, Buffer.from(JSON.stringify(roleRecord)));
   return JSON.stringify(roleRecord);
 }
@@ -832,7 +878,7 @@ public async AssignRole(ctx: Context, supplierID: string, role: string): Promise
     return Buffer.from(data).toString('utf8');
   }
 
-  // ── Validation + Historique (Phase 1 — inchangé) ──────────
+  // ── Validation + Historique  ──────────
   @Transaction(false)
   public async ValidateFullChain(ctx:Context,lastRecordID:string):Promise<string>{
     const report=new ValidationReport(); report.Details=[]; report.AnomaliesDetected=[];
@@ -871,5 +917,3 @@ public async AssignRole(ctx: Context, supplierID: string, role: string): Promise
     return Buffer.from(data).toString('utf8');
   }
 }
-
-
