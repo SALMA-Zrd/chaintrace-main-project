@@ -296,28 +296,37 @@ async function invoke(
     try { parsed = JSON.parse(text); } catch {}
 
     // Préparation du log pour Logstash
+    // ── 🚨 LE BLOC CORRIGÉ COMMENCE ICI 🚨 ────────────────────────────────────
+    const isAnomalyFunction = (fn === 'HandleSupplierAnomaly');
+
     const eventLog = {
       function: fn,
-      supplierID: user?.supplierID || 'org1admin',
+      supplierID: user?.supplierID || parsed.SupplierID || 'org1admin',
       success: true,
       recordID: parsed.ID || '',
       productID: parsed.ProductID || '',
-      certStatus: 'VALID',
-      riskFlag: parsed.RiskFlag || false,
-      qualityStatus: parsed.QualityStatus || 'PASS',
+      certStatus: parsed.Status || 'VALID',
+      riskFlag: parsed.RiskFlag || (isAnomalyFunction ? true : false),
+
+      // On force le statut à 'FAIL' pour l'appel SOAR afin d'harmoniser Kibana
+      qualityStatus: isAnomalyFunction ? 'FAIL' : (parsed.QualityStatus || 'PASS'),
+
+      // Extraction dynamique du score global calculé ou de la note produit
+      qualityScore: parsed.QualityScore ? parseFloat(parsed.QualityScore) : (parsed.QualityScore || null),
+
       carbonAlert: parsed.Carbon?.alert || false,
       carbonMessage: parsed.Carbon?.alertMessage || '',
       co2Kg: parsed.Carbon?.co2Kg || 0,
     };
-
+    // ──  ──────────────────────────────────────
     await sendToLogstash(eventLog);
 
     // ── 🚨 LE NOUVEAU DÉCLENCHEUR SOAR PLAT ET SÉPARÉ POUR N8N 🚨 ────
     if (eventLog.qualityStatus === 'FAIL' || eventLog.carbonAlert === true) {
       console.log(`\n[🚨 SOAR TRIGGER] Anomalie détectée ! Routage vers le workflow n8n...`);
-      
+
       const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook-test/blockchain-alert';
-      
+
       // Séparation stricte et nettoyage pour éviter toute pollution ou collage dans n8n
       const alertPayload = {
         alertType: eventLog.qualityStatus === 'FAIL' ? 'VIOLATION_QUALITE' : 'DEPASSEMENT_CARBON_NIST',
@@ -326,6 +335,9 @@ async function invoke(
         supplierID: String(eventLog.supplierID).trim().replace(/['"]+/g, ''), // Nettoyé et isolé
         productID: String(eventLog.productID).trim().replace(/['"]+/g, ''),   // Nettoyé et isolé
         qualityStatus: eventLog.qualityStatus,
+        // ── 🚨U SCORE DANS LE PAYLOAD DU WEBHOOK N8N 🚨 ──────────────────
+        qualityScore: eventLog.qualityScore || 0,
+  // ────────────────────────────────────────────────────────────────────────
         co2Emitted: `${eventLog.co2Kg} kg`,
         blockchainMessage: eventLog.carbonMessage || 'Alerte conformité levée'
       };
@@ -350,14 +362,14 @@ async function invoke(
     let cleanMsg = err.message || String(err);
     if (err.details && err.details.length > 0) cleanMsg = err.details[0].message || cleanMsg;
     cleanMsg = cleanMsg.replace(/^Error:\s*/, '').trim();
-    
-    await sendToLogstash({ 
-      function: fn, 
-      supplierID: user?.supplierID || 'unknown', 
-      success: false, 
-      error: cleanMsg 
+
+    await sendToLogstash({
+      function: fn,
+      supplierID: user?.supplierID || 'unknown',
+      success: false,
+      error: cleanMsg
     });
-    
+
     res.status(400).json({ success: false, error: cleanMsg });
   }
 }
@@ -423,6 +435,32 @@ async function query(
 // ─────────────────────────────────────────────────────────────────────────────
 // ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
+
+
+// ── 🚨 ROUTE SOAR : GESTION DES AVERTISSEMENTS (3-STRIKE POLICY) ───────────
+app.post('/certificate/handle-anomaly', (req, res) => {
+  const { supplierID, alertID } = req.body;
+
+  if (!supplierID || !alertID) {
+    return res.status(400).json({
+      success: false,
+      error: 'supplierID et alertID requis pour appliquer un avertissement',
+    });
+  }
+
+  // Appelle la nouvelle fonction de ton Chaincode Fabric
+  invoke(
+    res,
+    req,
+    'HandleSupplierAnomaly', // Nom exact de la fonction de ton Smart Contract
+    String(supplierID),
+    String(alertID)
+  );
+});
+
+
+
+
 
 app.post('/role/assign', (req, res) => {
 
@@ -640,7 +678,7 @@ app.get(
 
 
 
-// ── 🚨 AJOUTE CETTE ROUTE DE RÉVOCATION PKI ICI ──────────────────────────
+// ── 🚨  ROUTE DE RÉVOCATION PKI ICI ──────────────────────────
 app.post('/certificate/revoke', (req, res) => {
   const { supplierID, reason } = req.body;
 
@@ -663,7 +701,7 @@ app.post('/certificate/revoke', (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────
 
 
-// ── 🔐 RAJOUTE CES DEUX ROUTES PKI MANQUANTES ICI ──────────────────────────
+
 app.get(
   '/certificate/verify/:supplierID',
   (req, res) =>
@@ -705,7 +743,7 @@ app.post('/certificate/issue', (req, res) => {
   );
 });
 
-// ── 📊 AJOUT DE LA ROUTE DE MISE À JOUR DU SCORE PKI ────────────────────────
+// ── 📊  LA ROUTE DE MISE À JOUR DU SCORE PKI ────────────────────────
 app.post('/certificate/update-score', (req, res) => {
   const { supplierID, defectRate, deliveryOnTimeRate } = req.body;
 
@@ -730,7 +768,7 @@ app.post('/certificate/update-score', (req, res) => {
 
 
 
-// ── VEUILLEZ RAJOUTER CETTE ROUTE MANQUANTE ICI ──────────────────────────
+
 app.get(
   '/carbon/:productID',
   (req, res) =>
